@@ -102,6 +102,7 @@ private:
     bool m_showAll=true;
     bool m_showSphere=true;
     size_t m_numPoints=1000;
+    float m_dim=20.0f;
 
 };
 

@@ -31,8 +31,11 @@ void NGLScene::generatePoints(size_t _num)
   m_points.resize(_num);
   for(auto &p : m_points)
   {
-    p=ngl::Random::getRandomPoint(20,20,20);
+    p=ngl::Random::getRandomPoint(m_dim,m_dim,m_dim);
   }
+  m_colours.clear();
+  m_colours=ngl::generateDistinctColours(m_numPoints);
+
 }
 
 void NGLScene::resizeGL(int _w , int _h)
@@ -148,7 +151,7 @@ void NGLScene::paintGL()
   m_text->setColour(1.0f, 1.0f, 1.0f);
   std::string text = fmt::format("Search Radius {} ", m_radius);
   m_text->renderText(10, 700, text);
-  text = fmt::format("Position [{},{},{}] ", m_hashPos.m_x, m_hashPos.m_y, m_hashPos.m_z);
+  text = fmt::format("Position [{},{},{}] Dimension {} ", m_hashPos.m_x, m_hashPos.m_y, m_hashPos.m_z,m_dim);
   m_text->renderText(10, 680, text);
   
   text = fmt::format("Num Points {} Hash Size {} Found {} ",m_points.size(),m_hash->size(), spheres.size());
@@ -200,6 +203,7 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
     m_numPoints-=100; 
     std::clamp(m_numPoints,size_t(100),size_t(100000));
     generatePoints(m_numPoints); 
+    
   break;
   case Qt::Key_2 : 
     m_numPoints+=100; 
@@ -216,6 +220,20 @@ case Qt::Key_3 :
     std::clamp(m_numPoints,size_t(100),size_t(100000));
     generatePoints(m_numPoints); 
   break;
+
+  case Qt::Key_5 : 
+    m_dim-=0.5;
+    std::clamp(m_dim,0.1f,60.0f);
+    generatePoints(m_numPoints); 
+  break;
+
+  case Qt::Key_6 : 
+    m_dim+=0.5;
+    std::clamp(m_dim,0.1f,60.0f);
+    generatePoints(m_numPoints); 
+  break;
+
+
   default : break;
   }
   // finally update the GLWindow and re-draw

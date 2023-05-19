@@ -13,7 +13,7 @@ if(NOT DEFINED CMAKE_TOOLCHAIN_FILE AND DEFINED ENV{CMAKE_TOOLCHAIN_FILE})
 endif()
 
 # Name of the project
-project(SpatialHashBuild)
+project(SpatialHashOriginal)
 # This is the name of the Exe change this and it will change everywhere
 set(TargetName SpatialHash)
 # This will include the file NGLConfig.cmake, you need to add the location to this either using
@@ -37,39 +37,7 @@ set(CMAKE_CXX_EXTENSIONS ON)
 add_executable(${TargetName})
 # Add NGL include path
 include_directories(include $ENV{HOME}/NGL/include)
-target_sources(${TargetName} PRIVATE ${PROJECT_SOURCE_DIR}/src/main.cpp  
-${PROJECT_SOURCE_DIR}/src/SpatialHash.cpp
-${PROJECT_SOURCE_DIR}/src/NGLScene.cpp
-${PROJECT_SOURCE_DIR}/src/NGLSceneMouseControls.cpp
-${PROJECT_SOURCE_DIR}/include/SpatialHash.h
-${PROJECT_SOURCE_DIR}/include/NGLScene.h
+target_sources(${TargetName} PRIVATE ${PROJECT_SOURCE_DIR}/hash.cpp
 )
 
 target_link_libraries(${TargetName} PRIVATE  NGL Qt::Widgets Qt::OpenGL)
-add_custom_target(${TargetName}CopyShadersAndFonts ALL
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/shaders
-    ${PROJECT_BINARY_DIR}/shaders
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/fonts
-    ${PROJECT_BINARY_DIR}/fonts
-    )
-
-# ADD_DEPENDENCIES(${TargetName} ${TargetName}CopyShaders)
-
-
-#################################################################################
-# Testing code
-#################################################################################
-
-find_package(GTest CONFIG REQUIRED)
-include(GoogleTest)
-enable_testing()
-add_executable(SpatialHashTests)
-target_sources(SpatialHashTests PRIVATE tests/testSpatialHash.cpp
-${PROJECT_SOURCE_DIR}/src/SpatialHash.cpp
-${PROJECT_SOURCE_DIR}/include/SpatialHash.h
-
-)
-target_link_libraries(SpatialHashTests PRIVATE GTest::gtest GTest::gtest_main NGL)
-gtest_discover_tests(SpatialHashTests)

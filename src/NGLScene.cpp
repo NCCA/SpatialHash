@@ -1,11 +1,13 @@
 #include <QMouseEvent>
 #include <QGuiApplication>
-
+#include <QElapsedTimer>
 #include "NGLScene.h"
 #include <ngl/NGLInit.h>
 #include <ngl/VAOPrimitives.h>
 #include <ngl/ShaderLib.h>
 #include <ngl/Transformation.h>
+#include <ngl/SimpleVAO.h>
+#include <ngl/VAOFactory.h>
 #include <ngl/Random.h>
 #include <iostream>
 #include <ngl/NGLStream.h>
@@ -13,7 +15,7 @@
 NGLScene::NGLScene()
 {
   // re-size the widget to that of the parent (in this case the GLFrame passed in on construction)
-  setTitle("Blank NGL");
+  setTitle("Spatial Hash Demo");
   m_hash = std::make_unique<SpatialHash>(1.0f);
 }
 
@@ -25,6 +27,7 @@ NGLScene::~NGLScene()
 
 void NGLScene::generatePoints(size_t _num)
 {
+  m_points.clear();
   m_points.resize(_num);
   for(auto &p : m_points)
   {
@@ -38,7 +41,7 @@ void NGLScene::resizeGL(int _w , int _h)
 
   m_win.width  = static_cast<int>( _w * devicePixelRatio() );
   m_win.height = static_cast<int>( _h * devicePixelRatio() );
-  std::cout<<m_projection<<'\n';
+  m_text->setScreenSize(width(), height());
 }
 
 constexpr auto SphereShader="SphereShader";
@@ -57,10 +60,11 @@ void NGLScene::initializeGL()
 
   ngl::VAOPrimitives::createSphere("sphere",0.5f,20.0f);
   ngl::ShaderLib::use(SphereShader);
-  size_t numPoints=1000;
-  generatePoints(numPoints);
-  m_colours=ngl::generateDistinctColours(numPoints);
-
+  generatePoints(m_numPoints);
+  m_colours=ngl::generateDistinctColours(m_numPoints);
+  m_vao = ngl::VAOFactory::createVAO(ngl::simpleVAO, GL_LINES);
+  m_text = std::make_unique<ngl::Text>("fonts/Arial.ttf", 18);
+  m_text->setScreenSize(1024, 720);
   startTimer(10);
 }
 
@@ -71,7 +75,6 @@ void NGLScene::updateHash()
   {
     m_hash->insert(p);
   }
-  std::cout<<"Hash size "<<m_hash->size()<<'\n';
 }
 
 void NGLScene::paintGL()
@@ -93,25 +96,54 @@ void NGLScene::paintGL()
 
   ngl::Transformation tx;
   size_t i=0;
-  for(auto s : m_points)
+  if(m_showAll)
   {
-    tx.setPosition(s);
-    tx.setScale(1.2f,1.2f,1.2f);
-    ngl::ShaderLib::setUniform("MVP",m_projection*m_view*m_mouseGlobalTX*tx.getMatrix());
-    ngl::ShaderLib::setUniform("colour",m_colours[i++]);
-    ngl::VAOPrimitives::draw("sphere");
+    for(auto s : m_points)
+    {
+      tx.setPosition(s);
+      tx.setScale(1.2f,1.2f,1.2f);
+      ngl::ShaderLib::setUniform("MVP",m_projection*m_view*m_mouseGlobalTX*tx.getMatrix());
+      ngl::ShaderLib::setUniform("colour",m_colours[i++]);
+      ngl::VAOPrimitives::draw("sphere");
+    }
   }
-  
   auto spheres=m_hash->query(m_hashPos,m_radius);
-  std::cout<<"Found "<<spheres.size()<<" spheres\n";
+  std::vector<ngl::Vec3> data;
   for(auto s : spheres)
   {
     tx.setPosition(s);
+    data.push_back(m_hashPos);
+    data.push_back(s);
     ngl::ShaderLib::setUniform("MVP",m_projection*m_view*m_mouseGlobalTX*tx.getMatrix());
     ngl::ShaderLib::setUniform("colour",1.0f,0.0f,0.0f);
     ngl::VAOPrimitives::draw("cube");
   }
+
+
+  ngl::ShaderLib::use("nglColourShader");
+
+  ngl::Mat4 MVP;
+  MVP = m_projection * m_view * m_mouseGlobalTX;
+  ngl::ShaderLib::setUniform("MVP", MVP);
+  m_vao->bind();
+  m_vao->setData(ngl::SimpleVAO::VertexData(data.size() * sizeof(ngl::Vec3), data[0].m_x));
+  // We must do this each time as we change the data.
+  m_vao->setVertexAttributePointer(0, 3, GL_FLOAT, 0, 0);
+  m_vao->setNumIndices(data.size());
+  m_vao->draw();
+  m_vao->unbind();
+
+  m_text->setColour(1.0f, 1.0f, 1.0f);
+  std::string text = fmt::format("Search Radius {} ", m_radius);
+  m_text->renderText(10, 700, text);
+  text = fmt::format("Position [{},{},{}] ", m_hashPos.m_x, m_hashPos.m_y, m_hashPos.m_z);
+  m_text->renderText(10, 680, text);
   
+  text = fmt::format("Num Points {} Hash Size {} Found {} ",m_points.size(),m_hash->size(), spheres.size());
+  m_text->renderText(10, 660, text);
+  
+
+
 
 }
 
@@ -133,6 +165,7 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
   break;
 
   case Qt::Key_Plus :
+  case Qt::Key_Equal :
     m_radius+=1.0f;
     std::clamp(m_radius,2.0f,20.0f);
     break;
@@ -148,7 +181,27 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
   case Qt::Key_Down : m_hashPos.m_y-=1.0f; break;
   case Qt::Key_I : m_hashPos.m_z+=1.0f; break;
   case Qt::Key_O : m_hashPos.m_z-=1.0f; break;
-
+  case Qt::Key_A : m_showAll^=true; break;
+  case Qt::Key_1 : 
+    m_numPoints-=100; 
+    std::clamp(m_numPoints,size_t(100),size_t(100000));
+    generatePoints(m_numPoints); 
+  break;
+  case Qt::Key_2 : 
+    m_numPoints+=100; 
+    std::clamp(m_numPoints,size_t(100),size_t(100000));
+    generatePoints(m_numPoints); 
+  break;
+case Qt::Key_3 : 
+    m_numPoints-=100; 
+    std::clamp(m_numPoints,size_t(100),size_t(100000));
+    generatePoints(m_numPoints); 
+  break;
+  case Qt::Key_4 : 
+    m_numPoints+=1000; 
+    std::clamp(m_numPoints,size_t(100),size_t(100000));
+    generatePoints(m_numPoints); 
+  break;
   default : break;
   }
   // finally update the GLWindow and re-draw
@@ -159,6 +212,10 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
 
 void NGLScene::timerEvent(QTimerEvent *)
 {
+  QElapsedTimer timer;
+  timer.start();
   updateHash();
+  qDebug() << "Hash took" << timer.elapsed() << "milliseconds";
+
   update();
 }

@@ -2,6 +2,9 @@
 #define NGLSCENE_H_
 #include <ngl/Vec3.h>
 #include <ngl/Mat4.h>
+#include <ngl/AbstractVAO.h>
+#include <ngl/Text.h>
+#include <memory>
 #include <vector>
 #include "WindowParams.h"
 #include "SpatialHash.h"
@@ -48,6 +51,7 @@ class NGLScene : public QOpenGLWindow
     void resizeGL(int _w, int _h) override;
 
 private:
+    void resetSpheres();
     void generatePoints(size_t _numPoints);
     void updateHash();
     //----------------------------------------------------------------------------------------------------------------------
@@ -93,6 +97,11 @@ private:
     float m_radius=5.0f;
     ngl::Vec3 m_hashPos={0,0,0};
     std::unique_ptr<SpatialHash> m_hash;
+    std::unique_ptr<ngl::AbstractVAO> m_vao;
+    std::unique_ptr<ngl::Text> m_text;
+    bool m_showAll=true;
+    size_t m_numPoints=1000;
+
 };
 
 

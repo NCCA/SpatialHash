@@ -4,19 +4,19 @@
 #include <ngl/NGLHash.h>
 
 
-  void SpatialHash::insert(const ngl::Vec3& point) 
+  void SpatialHash::insert(const ngl::Vec3& point) noexcept
   {
     int index = hash(point);
     m_hashTable[index].push_back(point);
     
   }
 
-  void SpatialHash::clear()
+  void SpatialHash::clear() noexcept
   {
     m_hashTable.clear();
   }
 
-  std::vector<ngl::Vec3> SpatialHash::query(const ngl::Vec3& point, float radius) const 
+  std::vector<ngl::Vec3> SpatialHash::query(const ngl::Vec3& point, float radius) const noexcept
   {
     std::vector<ngl::Vec3> result;
     int minIndexX = hashCoord(point.m_x - radius);
@@ -48,7 +48,7 @@
     }
     return result;
   }
-  int SpatialHash::hash(const ngl::Vec3& point) const 
+  int SpatialHash::hash(const ngl::Vec3& point) const noexcept
   {
     int x = hashCoord(point.m_x);
     int y = hashCoord(point.m_y);
@@ -56,17 +56,17 @@
     return hashIndex(x, y, z);
   }
 
-  int SpatialHash::hashCoord(float coord) const 
+  int SpatialHash::hashCoord(float coord) const noexcept
   {
     return static_cast<int>(std::floor(coord / m_cellSize));
   }
 
-  int SpatialHash::hashIndex(int x, int y, int z) const 
+  int SpatialHash::hashIndex(int x, int y, int z) const noexcept
   {
     return x + y * 15485863 + z * 32452843;
   }
 
-  void SpatialHash::debug() const 
+  void SpatialHash::debug() const noexcept
   {
    std::cout<<"************************************\n";
     for(auto h : m_hashTable)
@@ -80,7 +80,7 @@
     std::cout<<"************************************\n";
   }
 
-  size_t SpatialHash::size() const 
+  size_t SpatialHash::size() const noexcept
   {
     return m_hashTable.size();
   }

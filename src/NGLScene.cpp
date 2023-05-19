@@ -59,6 +59,7 @@ void NGLScene::initializeGL()
   m_view = ngl::lookAt({60.0f, 60.0f, 60.0f}, {0,0,0}, {0,1,0});
 
   ngl::VAOPrimitives::createSphere("sphere",0.5f,20.0f);
+  ngl::VAOPrimitives::createSphere("unitsphere",1.0f,20.0f);
   ngl::ShaderLib::use(SphereShader);
   generatePoints(m_numPoints);
   m_colours=ngl::generateDistinctColours(m_numPoints);
@@ -122,6 +123,17 @@ void NGLScene::paintGL()
 
   ngl::ShaderLib::use("nglColourShader");
 
+  if(m_showSphere)
+  {
+    tx.setPosition(m_hashPos);
+    tx.setScale(m_radius,m_radius,m_radius);
+    ngl::ShaderLib::setUniform("MVP",m_projection*m_view*m_mouseGlobalTX*tx.getMatrix());
+    ngl::ShaderLib::setUniform("Colour",1.0f,1.0f,1.0f,1.0f);
+    glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+    ngl::VAOPrimitives::draw("unitsphere");
+    glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+  }
+
   ngl::Mat4 MVP;
   MVP = m_projection * m_view * m_mouseGlobalTX;
   ngl::ShaderLib::setUniform("MVP", MVP);
@@ -182,6 +194,8 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
   case Qt::Key_I : m_hashPos.m_z+=1.0f; break;
   case Qt::Key_O : m_hashPos.m_z-=1.0f; break;
   case Qt::Key_A : m_showAll^=true; break;
+  case Qt::Key_S : m_showSphere^=true; break;
+  
   case Qt::Key_1 : 
     m_numPoints-=100; 
     std::clamp(m_numPoints,size_t(100),size_t(100000));

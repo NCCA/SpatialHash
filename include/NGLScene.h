@@ -100,6 +100,7 @@ private:
     std::unique_ptr<ngl::AbstractVAO> m_vao;
     std::unique_ptr<ngl::Text> m_text;
     bool m_showAll=true;
+    bool m_showSphere=true;
     size_t m_numPoints=1000;
 
 };
